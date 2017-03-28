@@ -1,6 +1,5 @@
 #!/bin/bash
-for unfiltered in "~/Programming/cmput291-mp2/phase1/tweets.txt" "~/Programming/cmput291-mp2/phase1/terms.txt"
-do
-	echo "Filtering $unfiltered"
-	cat $unfiltered
-done
+sort "../phase1/tweets.txt" | uniq > filteredtweets
+sort "../phase1/terms.txt" | uniq > filteredterms
+sort "../phase1/dates.txt" | uniq > filtereddates
+
