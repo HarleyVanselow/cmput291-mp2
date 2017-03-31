@@ -8,6 +8,7 @@ string_compare = {
     "location": (lambda text: re.search("location(:)(.+)", text)),
     "name": (lambda text: re.search("name(:)(.+)", text))
 }
+term_types = ["text", "location", "name"]
 
 
 def main():
@@ -56,14 +57,14 @@ def run_query(query, databases):
 def process_query(query, databases):
     for (info, search) in string_compare.items():
         if search(query) is not None:
-            return execute(info, search(query).group(1),search(query).group(2), databases)
+            return execute(info, search(query).group(1), search(query).group(2), databases)
     return search_general(query, databases)
 
 
 def search_date(term, operation, databases):
     print("Searching date...")
     cursor = databases["dates"].cursor()
-    key = bytes(term,'utf-8')
+    key = bytes(term, 'utf-8')
     results = []
     if operation == ":":
         if cursor.set(key) is None:
@@ -93,60 +94,55 @@ def search_date(term, operation, databases):
     return results
 
 
-def search_location(term, databases):
-    print("Searching name...")
+def matches_wildcard(key, wildkey):
+    term = key.decode("utf-8")[2:]
+    pattern = wildkey.replace("%", ".+")
+    print("Term: " + term + ", pattern: " + pattern)
+    return re.search(pattern, term) is not None
+
+
+def search_term(type, term, databases):
     cursor = databases["terms"].cursor()
     results = []
-    if cursor.set(bytes("l-" + term, 'utf-8')) is None:
-        return results
+    # Wildcard search
+    if term[-1] == "%":
+        print("Searching term with wildcard...")
+        key = bytes(type[0] + "-" + term[0:-1], 'utf-8')
+        print(key)
+        if cursor.set_range(key) is None:
+            print("No results")
+            return results
+        else:
+            while cursor.current() is not None and matches_wildcard(cursor.current()[0], term):
+                if cursor.current()[1] not in results: results.append(cursor.current()[1])
+                cursor.next_nodup()
+    # Regular search
     else:
-        results.append(cursor.current()[1])
-        while cursor.next_dup() is not None:
+        print("Searching term...")
+        key = bytes(type[0] + "-" + term, 'utf-8')
+        if cursor.set(key) is None:
+            return results
+        else:
             results.append(cursor.current()[1])
-    return results
+            while cursor.next_dup() is not None:
+                results.append(cursor.current()[1])
 
-
-def search_name(term, databases):
-    print("Searching name...")
-    cursor = databases["terms"].cursor()
-    results = []
-    if cursor.set(bytes("n-" + term, 'utf-8')) is None:
-        return results
-    else:
-        results.append(cursor.current()[1])
-        while cursor.next_dup() is not None:
-            results.append(cursor.current()[1])
-    return results
-
-
-def search_text(term, databases):
-    print("Searching text...")
-    cursor = databases["terms"].cursor()
-    results = []
-    if cursor.set(bytes("t-" + term, 'utf-8')) is None:
-        return results
-    else:
-        results.append(cursor.current()[1])
-        while cursor.next_dup() is not None:
-            results.append(cursor.current()[1])
     return results
 
 
 def search_general(query, databases):
     print("Searching general...")
-    results = [search_location(query, databases), search_text(query, databases), search_name(query, databases)]
+    results = [search_term("name", query, databases), search_term("location", query, databases),
+               search_term("text", query, databases)]
     return [result for result_set in results for result in result_set]
 
 
-def execute(info,operation,term, databases):
-    if info == "text":
-        return search_text(term, databases)
-    elif info == "name":
-        return search_name(term, databases)
-    elif info == "location":
-        return search_location(term, databases)
+def execute(info, operation, term, databases):
+    if info in term_types:
+        return search_term(info, term, databases)
     elif info == "date":
         return search_date(term, operation, databases)
+
 
 if __name__ == "__main__":
     main()
