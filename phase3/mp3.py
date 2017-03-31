@@ -1,3 +1,4 @@
+import html
 from bsddb3 import db
 import re
 from functools import reduce
@@ -11,6 +12,20 @@ string_compare = {
 term_types = ["text", "location", "name"]
 
 
+def print_help():
+    print("""Commands:
+alphanumeric    ::= [0-9a-zA-Z_]
+date            ::= year '/' month '/' day
+datePrefix      ::= 'date' (':' | '>' | '<')
+dateQuery       ::= dataPrefix date
+termPrefix      ::= ('text' | 'name' | 'location') ':'
+term            ::= alphanumeric
+termPattern     ::= alphanumeric '%'
+termQuery       ::= termPrefix? (term | termPattern)
+expression      ::= termQuery | dateQuery
+query           ::= expression | (expression whitespace)+""")
+
+
 def main():
     termdatabase = db.DB()
     termdatabase.open("../phase2/te.idx", None, db.DB_BTREE, db.DB_CREATE, db.DB_DUP)
@@ -21,16 +36,18 @@ def main():
 
     databases = {"terms": termdatabase, "tweets": tweetdatabase, "dates": datedatabase}
     while 1:
-        query = input()
+        query = input("Enter your query #>")
         if query == 'exit':
             break
-        run_query(query.lower(), databases)
-
+        if query == 'help':
+            print_help()
+        else:
+            run_query(query.lower(), databases)
     for key, value in databases.items(): value.close()
 
 
 def print_tweet(xml):
-    xml = xml.decode("utf-8")
+    xml = html.unescape(xml.decode("utf-8"))
     print("*********************************************")
     print("ID: " + re.search("<id>(.+)</id>", xml).group(1))
     print("Creation date: " + re.search("<created_at>(.+)</created_at>", xml).group(1))
@@ -101,13 +118,13 @@ def matches_wildcard(key, wildkey):
     return re.search(pattern, term) is not None
 
 
-def search_term(type, term, databases):
+def search_term(term_type, term, databases):
     cursor = databases["terms"].cursor()
     results = []
     # Wildcard search
     if term[-1] == "%":
         print("Searching term with wildcard...")
-        key = bytes(type[0] + "-" + term[0:-1], 'utf-8')
+        key = bytes(term_type[0] + "-" + term[0:-1], 'utf-8')
         print(key)
         if cursor.set_range(key) is None:
             print("No results")
@@ -115,11 +132,11 @@ def search_term(type, term, databases):
         else:
             while cursor.current() is not None and matches_wildcard(cursor.current()[0], term):
                 if cursor.current()[1] not in results: results.append(cursor.current()[1])
-                cursor.next_nodup()
+                cursor.next()
     # Regular search
     else:
         print("Searching term...")
-        key = bytes(type[0] + "-" + term, 'utf-8')
+        key = bytes(term_type[0] + "-" + term, 'utf-8')
         if cursor.set(key) is None:
             return results
         else:
@@ -132,8 +149,7 @@ def search_term(type, term, databases):
 
 def search_general(query, databases):
     print("Searching general...")
-    results = [search_term("name", query, databases), search_term("location", query, databases),
-               search_term("text", query, databases)]
+    results = [search_term(term_type, query, databases) for term_type in term_types]
     return [result for result_set in results for result in result_set]
 
 
