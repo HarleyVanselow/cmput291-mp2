@@ -68,7 +68,8 @@ def run_query(query, databases):
     matches = []
     for constraint in query.split(' '):
         matches.append(process_query(constraint, databases))
-    print_result_tweets(reduce(lambda x, y: set(x) & set(y), matches), databases)
+    
+    print_result_tweets(set(reduce(lambda x, y: set(x) & set(y), matches)), databases)
 
 
 def process_query(query, databases):
@@ -137,7 +138,9 @@ def search_term(term_type, term, databases):
     else:
         print("Searching term...")
         key = bytes(term_type[0] + "-" + term, 'utf-8')
+        print(key)
         if cursor.set(key) is None:
+            print("No results")
             return results
         else:
             results.append(cursor.current()[1])
