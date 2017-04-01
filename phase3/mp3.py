@@ -50,12 +50,29 @@ def print_tweet(xml):
     xml = html.unescape(xml.decode("utf-8"))
     print("*********************************************")
     print("ID: " + re.search("<id>(.+)</id>", xml).group(1))
-    print("Creation date: " + re.search("<created_at>(.+)</created_at>", xml).group(1))
-    print("Text: " + re.search("<text>(.+)</text>", xml).group(1))
-    print("Name: " + re.search("<name>(.+)</name>", xml).group(1))
-    print("Location: " + re.search("<location>(.+)</location>", xml).group(1))
-    print("URL: " + re.search("<url>(.+)</url>", xml).group(1))
-    print("Retweet count: " + re.search("<retweet_count>(.+)</retweet_count>", xml).group(1))
+    field = re.search("<created_at>(.+)</created_at>", xml)
+    if field is not None:
+        print("Creation date: " + field.group(1))
+
+    field = re.search("<text>(.+)</text>", xml)
+    if field is not None:
+        print("Text: " + field.group(1))
+
+    field = re.search("<name>(.+)</name>", xml)
+    if field is not None:
+        print("Name: " + field.group(1))
+
+    field = re.search("<location>(.+)</location>", xml)
+    if field is not None:
+        print("Location: " + field.group(1))
+
+    field = re.search("<url>(.+)</url>", xml)
+    if field is not None:
+        print("URL: " + field.group(1))
+
+    field = re.search("<retweet_count>(.+)</retweet_count>", xml)
+    if field is not None:
+        print("Retweet count: " + field.group(1))
 
 
 def print_result_tweets(results, databases):
