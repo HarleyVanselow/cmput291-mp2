@@ -86,6 +86,8 @@ def print_result_tweets(results, databases):
 def run_query(query, databases):
     matches = []
     for constraint in query.split(' '):
+        if constraint == "":
+            continue
         matches.append(process_query(constraint, databases))
     
     print_result_tweets(set(reduce(lambda x, y: set(x) & set(y), matches)), databases)
