@@ -136,6 +136,8 @@ def search_date(term, operation, databases):
 def matches_wildcard(key, wildkey):
     term = key.decode("utf-8")[2:]
     pattern = wildkey.replace("%", ".+")
+    pattern = pattern.replace("(", "\(")
+    pattern = pattern.replace(")", "\)")
     print("Term: " + term + ", pattern: " + pattern)
     return re.search(pattern, term) is not None
 
