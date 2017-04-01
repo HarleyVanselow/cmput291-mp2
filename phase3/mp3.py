@@ -41,6 +41,8 @@ def main():
             break
         if query == 'help':
             print_help()
+        if query == "":
+            pass
         else:
             run_query(query.lower(), databases)
     for key, value in databases.items(): value.close()
